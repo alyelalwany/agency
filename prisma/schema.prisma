@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model RealEstateUnit {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  type      String   @default("residential")
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenants   Tenant[]
+  amenities Amenity[]
+  processes Process[]
+  tasks     Task[]
+  agent     Agent?
+}
+
+model Agent {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  systemPrompt String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  unitId   String         @unique
+  unit     RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tasks    Task[]
+  messages ChatMessage[]
+}
+
+model Tenant {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  leaseStart DateTime
+  leaseEnd   DateTime
+  rentAmount Float
+  rentStatus String   @default("paid")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  unitId String
+  unit   RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+model Amenity {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  status      String   @default("active")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  unitId String
+  unit   RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+model Process {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String
+  status      String    @default("pending")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  unitId String
+  unit   RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("pending")
+  priority    String   @default("medium")
+  response    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agentId  String?
+  agent    Agent?         @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  unitId   String
+  unit     RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  taskId  String?
+  task    Task?  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  agentId String?
+  agent   Agent? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model Settings {
+  id        String   @id @default("singleton")
+  apiKey    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
